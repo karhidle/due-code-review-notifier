@@ -1,0 +1,46 @@
+# Due crucible reviews service
+
+service: due-crucible-reviews
+
+provider:
+  name: aws
+  runtime: python3.7
+  profile: dev
+  endpointType: REGIONAL
+  stage: dev # Set the default stage used. Default is dev
+  region: us-east-1 # Overwrite the default region used. Default is us-east-1
+  memorySize: 128
+  timeout: 3 # optional, in seconds, default is 6
+  tracing: true # enable tracing
+  iamRoleStatements:
+    - Effect: "Allow" # xray permissions (required)
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource:
+        - "*"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-plugin-tracing
+
+custom:
+  pythonRequirements:
+    usePipenv: true
+    vendor: ./lib
+    invalidateCaches: true
+#    zip: true
+
+functions:
+  issue_token:
+    handler: handler.check_due_reviews
+    environment:
+      PARAMETER_STORE_ENDPOINT: https://ssm.us-east-1.amazonaws.com
+
+    #    The following are a few example events you can configure
+    #    NOTE: Please make sure to change your handler code to work with those events
+    #    Check the event documentation for details
+    events:
+    - http:
+        path: /
+        method: post

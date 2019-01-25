@@ -19,23 +19,23 @@ slack_headers = {'Content-type': 'application/json',
 slack_user_lookup_endpoint = 'https://slack.com/api/users.lookupByEmail'
 
 
-def lambda_handler(event, context):
+def check_due_reviews(event: dict, context) -> dict:
 
     logging.info('Checking due reviews from crucible.')
 
-    # get reviews from crucible
+    # get reviews from crucible, there's no way to filter due reviews in their API.
     r = requests.get(url=crucible_open_reviews_endpoint,
                      headers={'Accept': 'application/json'},
                      params={'FEAUTH': crucible_user_token, 'states': 'Review'})
 
     if r.status_code != 200:
         logging.error(f'Got status {r.status_code} while trying to fetch reviews from crucible.')
-        exit(1)
+        return
 
     data = r.json()
     if not data:
         logging.debug('No reviews were found in crucible.')
-        exit(0)
+        return
 
     review_list = ''
     authors = {}
