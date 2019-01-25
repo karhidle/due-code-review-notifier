@@ -1,4 +1,4 @@
-# due-reviews-notifier
+# due-code-review-notifier
 The goal of this simple function is to notify a group of developers about due code reviews. 
 Code reviews are pulled from Crucible, and the notifcations are sent via Slack.
 
