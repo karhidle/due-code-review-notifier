@@ -7,10 +7,10 @@ import pytz
 import requests
 
 # env variables
-crucible_base_url = os.getenv('crucible_base_url')
-crucible_user_token = os.getenv('crucible_user_token')
-slack_webhook_url = os.getenv('slack_webhook_url')
-slack_token = os.getenv('slack_token')
+crucible_base_url = os.getenv('CRUCIBLE_BASE_URL')
+crucible_user_token = os.getenv('CRUCIBLE_USER_TOKEN')
+slack_webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+slack_token = os.getenv('SLACK_TOKEN')
 # end variables
 
 crucible_open_reviews_endpoint = f'{crucible_base_url}/rest-service/reviews-v1/filter/'
@@ -52,12 +52,10 @@ def check_due_reviews(event: dict, context) -> dict:
             # convert it to UTC
             due_date_utc = due_date.replace(tzinfo=pytz.UTC) - due_date.utcoffset()
 
-            # get timestamps for due date and current time
-            due_date_utc_timestamp = due_date_utc.timestamp()
-            now_utc_timestamp = datetime.datetime.utcnow().timestamp()
+            now_utc = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
 
             # check if the review is due
-            if now_utc_timestamp > due_date_utc_timestamp:
+            if now_utc > due_date_utc:
 
                 # try to get author info from slack so we can properly mention the user
                 if review['creator']['userName'] not in authors:
@@ -72,8 +70,16 @@ def check_due_reviews(event: dict, context) -> dict:
                     else:
                         logging.warning(f'Got status {r.status_code} while calling {slack_user_lookup_endpoint} .')
 
+                time_diff = (now_utc - due_date_utc)
+                if time_diff.days:
+                    due_info = f'{time_diff.days} days'
+                else:
+                    due_hours = int(time_diff.seconds / 3600)
+                    due_info = f'{due_hours} hours' if due_hours else f'{int(time_diff.seconds / 60)} minutes'
+
                 review_list += (f"{crucible_base_url}/cru/{review['permaId']['id']} "
-                                f"author: {authors[review['creator']['userName']]}\n")
+                                f"author: {authors[review['creator']['userName']]} "
+                                f"- due {due_info} ago\n")
 
     if review_list:
         r = requests.post(url=slack_webhook_url,
